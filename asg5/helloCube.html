@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Three.js - Background Cubemap</title>
+    <style>
+    html, body {
+        height: 100%;
+        margin: 0;
+    }
+    #c {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+  </body>
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../build/three.module.js",
+    "three/addons/": "../../examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+
+function main() {
+
+	const canvas = document.querySelector( '#c' );
+	const renderer = new THREE.WebGLRenderer( { antialias: true, canvas } );
+
+	const fov = 75;
+	const aspect = 2;
+	const near = 0.1;
+	const far = 100;
+	const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
+	camera.position.z = 10;
+
+	const controls = new OrbitControls( camera, canvas );
+	controls.target.set( 0, 0, 0 );
+	controls.update();
+
+	const scene = new THREE.Scene();
+
+	// directional light
+	const directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
+	directionalLight.position.set( -1, 2, 4 );
+	scene.add( directionalLight );
+
+	// point light
+	const pointLight = new THREE.PointLight( 0xffffff, 1, 100 );
+	pointLight.position.set( 5, 5, 5 );
+	scene.add( pointLight );
+
+	// hemisphere light
+	const hemisphereLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+	scene.add( hemisphereLight );
+
+	// create cube
+	const cubeGeometry = new THREE.BoxGeometry( 1, 1, 1 );
+	const cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x44aa88 } );
+	const cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
+	cube.position.x = -2;
+	scene.add( cube );
+
+	//create sphere w/ texture
+	const sphereGeometry = new THREE.SphereGeometry( 1, 32, 32 );
+	const textureLoader = new THREE.TextureLoader();
+	const sphereTexture = textureLoader.load( 'earth.jpg' );
+	const sphereMaterial = new THREE.MeshPhongMaterial( { map: sphereTexture } );
+	const sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
+	sphere.position.x = 2;
+	scene.add( sphere );
+
+	// create cylinder
+	const cylinderGeometry = new THREE.CylinderGeometry( 0.5, 0.5, 2, 32 );
+	const cylinderMaterial = new THREE.MeshPhongMaterial( { color: 0x8844aa } );
+	const cylinder = new THREE.Mesh( cylinderGeometry, cylinderMaterial );
+	cylinder.position.y = -2;
+	scene.add( cylinder );
+
+  // Load equirectangular texture and set it as the scene background
+  const equirectangularTexture = textureLoader.load('eiffelTower.jpg', () => {
+    equirectangularTexture.mapping = THREE.EquirectangularReflectionMapping;
+    equirectangularTexture.colorSpace = THREE.SRGBColorSpace;
+    scene.background = equirectangularTexture;
+  });
+
+	//more cubes to reach 20 shapes
+	const cubes = [];
+	for ( let i = 0; i < 17; i ++ ) {
+		const cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
+		cube.position.x = ( Math.random() - 0.5 ) * 10;
+		cube.position.y = ( Math.random() - 0.5 ) * 10;
+		cube.position.z = ( Math.random() - 0.5 ) * 10;
+		scene.add( cube );
+		cubes.push( cube );
+	}
+
+	function resizeRendererToDisplaySize( renderer ) {
+		const canvas = renderer.domElement;
+		const width = canvas.clientWidth;
+		const height = canvas.clientHeight;
+		const needResize = canvas.width !== width || canvas.height !== height;
+		if ( needResize ) {
+			renderer.setSize( width, height, false );
+		}
+		return needResize;
+	}
+
+	function render( time ) {
+		time *= 0.001;
+
+		if ( resizeRendererToDisplaySize( renderer ) ) {
+			const canvas = renderer.domElement;
+			camera.aspect = canvas.clientWidth / canvas.clientHeight;
+			camera.updateProjectionMatrix();
+		}
+
+		// Animate cubes
+		cubes.forEach( ( cube, ndx ) => {
+			const speed = 1 + ndx * .1;
+			const rot = time * speed;
+			cube.rotation.x = rot;
+			cube.rotation.y = rot;
+		} );
+
+		// Animate sphere
+		sphere.rotation.x = time;
+		sphere.rotation.y = time;
+
+		renderer.render( scene, camera );
+
+		requestAnimationFrame( render );
+	}
+
+	requestAnimationFrame( render );
+}
+
+main();
+</script>
+</html>
